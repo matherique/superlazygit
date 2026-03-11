@@ -3,6 +3,7 @@ import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import net from 'node:net';
+import electronBinary from 'electron';
 
 const cwd = process.cwd();
 const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
@@ -64,11 +65,15 @@ function launchElectron() {
   }
 
   stopChild(electronProcess);
-  electronProcess = spawnProcess(npmCmd, ['exec', '--', 'electron', mainEntry], {
+  electronProcess = spawnProcess(electronBinary, [mainEntry], {
     VITE_DEV_SERVER_URL: `http://127.0.0.1:${rendererPort}`,
   });
 
-  electronProcess.on('exit', (code) => {
+  electronProcess.on('exit', (code, signal) => {
+    if (!shuttingDown && signal === 'SIGTERM') {
+      return;
+    }
+
     if (!shuttingDown && code !== 0 && code !== null) {
       shutdown(code ?? 1);
     }

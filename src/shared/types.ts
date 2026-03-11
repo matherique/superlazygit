@@ -35,6 +35,12 @@ export interface CommitDiff {
   files: DiffFile[];
 }
 
+export interface RecentProject {
+  path: string;
+  name: string;
+  lastOpenedAt: string;
+}
+
 export type RepositorySelection =
   | {
       path: string;
@@ -47,7 +53,9 @@ export type RepositorySelection =
     };
 
 export interface GitViewerApi {
-  selectRepository: () => Promise<RepositorySelection>;
+  onRepositorySelected: (listener: (selection: RepositorySelection) => void) => () => void;
+  getRecentProjects: () => Promise<RecentProject[]>;
+  openRecentProject: (path: string) => Promise<RepositorySelection>;
   getBranches: (repoPath: string) => Promise<BranchInfo[]>;
   getCommits: (repoPath: string, branchName: string) => Promise<CommitInfo[]>;
   getCommitDiff: (repoPath: string, commitHash: string) => Promise<CommitDiff>;

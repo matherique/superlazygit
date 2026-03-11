@@ -1,6 +1,6 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { coy as fallbackSyntaxTheme } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { gruvboxDark as fallbackSyntaxTheme } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import csharp from 'react-syntax-highlighter/dist/esm/languages/prism/csharp';
 import css from 'react-syntax-highlighter/dist/esm/languages/prism/css';
 import javascript from 'react-syntax-highlighter/dist/esm/languages/prism/javascript';
@@ -12,7 +12,7 @@ import tsx from 'react-syntax-highlighter/dist/esm/languages/prism/tsx';
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript';
 import yaml from 'react-syntax-highlighter/dist/esm/languages/prism/yaml';
 
-import type { BranchInfo, CommitDiff, CommitInfo, DiffFile, DiffLine } from '../../shared/types';
+import type { BranchInfo, CommitDiff, CommitInfo, DiffFile, DiffLine, RecentProject } from '../../shared/types';
 
 SyntaxHighlighter.registerLanguage('csharp', csharp);
 SyntaxHighlighter.registerLanguage('css', css);
@@ -138,6 +138,17 @@ function formatCommitDate(date: string): string {
   }
 }
 
+function getFolderName(repoPath: string) {
+  if (!repoPath) {
+    return 'Nenhum repositório aberto';
+  }
+
+  const normalizedPath = repoPath.replace(/[\\/]+$/, '');
+  const parts = normalizedPath.split(/[\\/]/);
+
+  return parts[parts.length - 1] || normalizedPath;
+}
+
 function renderLineNumber(value?: number) {
   return value ?? '';
 }
@@ -254,6 +265,8 @@ function DiffPatch({ file }: { file: DiffFile }) {
 
 export function App() {
   const [repoPath, setRepoPath] = useState<string>('');
+  const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
+  const [recentMenuOpen, setRecentMenuOpen] = useState(false);
   const [branches, setBranches] = useState<BranchInfo[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<string>('');
   const [commits, setCommits] = useState<CommitInfo[]>([]);
@@ -263,45 +276,88 @@ export function App() {
   const [loadingBranches, setLoadingBranches] = useState(false);
   const [loadingCommits, setLoadingCommits] = useState(false);
   const [loadingDiff, setLoadingDiff] = useState(false);
+  const recentMenuRef = useRef<HTMLDivElement | null>(null);
 
   const selectedCommitDetails = useMemo(
     () => commits.find((commit) => commit.hash === selectedCommit) ?? null,
     [commits, selectedCommit],
   );
 
-  async function handleSelectRepository() {
-    setError('');
-
-    const selection = await window.gitViewer.selectRepository();
-
-    if ('cancelled' in selection) {
-      return;
-    }
-
-    if ('error' in selection) {
-      setError(selection.error);
-      return;
-    }
-
-    setLoadingBranches(true);
-
+  async function loadRecentProjects() {
     try {
-      const nextBranches = await window.gitViewer.getBranches(selection.path);
-      const nextSelectedBranch =
-        nextBranches.find((branch) => branch.current)?.name ?? nextBranches[0]?.name ?? '';
-
-      setRepoPath(selection.path);
-      setBranches(nextBranches);
-      setSelectedBranch(nextSelectedBranch);
-      setCommits([]);
-      setSelectedCommit('');
-      setDiff({ files: [] });
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar as branches.');
-    } finally {
-      setLoadingBranches(false);
+      const projects = await window.gitViewer.getRecentProjects();
+      setRecentProjects(projects);
+    } catch {
+      setRecentProjects([]);
     }
   }
+
+  useEffect(() => {
+    void loadRecentProjects();
+
+    const unsubscribe = window.gitViewer.onRepositorySelected(async (selection) => {
+      setError('');
+      setRecentMenuOpen(false);
+
+      if ('cancelled' in selection) {
+        return;
+      }
+
+      if ('error' in selection) {
+        setError(selection.error);
+        void loadRecentProjects();
+        return;
+      }
+
+      setLoadingBranches(true);
+
+      try {
+        const nextBranches = await window.gitViewer.getBranches(selection.path);
+        const nextSelectedBranch =
+          nextBranches.find((branch) => branch.current)?.name ?? nextBranches[0]?.name ?? '';
+
+        setRepoPath(selection.path);
+        setBranches(nextBranches);
+        setSelectedBranch(nextSelectedBranch);
+        setCommits([]);
+        setSelectedCommit('');
+        setDiff({ files: [] });
+        void loadRecentProjects();
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar as branches.');
+      } finally {
+        setLoadingBranches(false);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (!recentMenuOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!recentMenuRef.current?.contains(event.target as Node)) {
+        setRecentMenuOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setRecentMenuOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [recentMenuOpen]);
 
   useEffect(() => {
     if (!repoPath || !selectedBranch) {
@@ -389,18 +445,44 @@ export function App() {
   return (
     <div className="shell">
       <header className="topbar">
-        <div className="brand-block">
-          <p className="eyebrow">layzgit style viewer</p>
-          <h1>superlayzgit</h1>
-        </div>
-        <div className="topbar__controls">
-          <div className="repo-chip">
-            <span className="repo-chip__label">repo</span>
-            <span className="repo-chip__value">{repoPath || 'nenhum repositório selecionado'}</span>
-          </div>
-          <button className="primary-button" onClick={() => void handleSelectRepository()} type="button">
-            Escolher pasta
+        <h1 className="topbar__title">{getFolderName(repoPath)}</h1>
+        <div className="topbar__actions" ref={recentMenuRef}>
+          <button
+            className="recent-projects-button"
+            onClick={() => setRecentMenuOpen((currentValue) => !currentValue)}
+            type="button"
+          >
+            projetos
           </button>
+
+          {recentMenuOpen ? (
+            <div className="recent-projects-menu">
+              <div className="recent-projects-menu__header">
+                <p className="panel__eyebrow">recentes</p>
+                <span className="panel__meta">{recentProjects.length}</span>
+              </div>
+
+              <div className="recent-projects-menu__content">
+                {recentProjects.length === 0 ? (
+                  <p className="empty-state empty-state--menu">Nenhum projeto recente.</p>
+                ) : (
+                  recentProjects.map((project) => (
+                    <button
+                      className={`recent-project-item ${project.path === repoPath ? 'recent-project-item--active' : ''}`}
+                      key={project.path}
+                      onClick={() => {
+                        void window.gitViewer.openRecentProject(project.path);
+                      }}
+                      type="button"
+                    >
+                      <span className="recent-project-item__name">{project.name}</span>
+                      <span className="recent-project-item__path">{project.path}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : null}
         </div>
       </header>
 
@@ -417,7 +499,7 @@ export function App() {
             </div>
             <div className="stack-panel__content">
               {branches.length === 0 ? (
-                <p className="empty-state">Escolha um repositório Git para listar as branches locais.</p>
+                <p className="empty-state">Abra um repositório pelo menu nativo do sistema para listar as branches locais.</p>
               ) : (
                 branches.map((branch) => (
                   <button
