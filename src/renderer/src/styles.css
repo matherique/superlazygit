@@ -243,6 +243,24 @@ button {
   font-size: 0.76rem;
 }
 
+.loading-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.loading-indicator__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: loading-pulse 900ms ease-in-out infinite;
+}
+
 .stack-panel__content,
 .diff-panel__content {
   overflow: auto;
@@ -480,8 +498,7 @@ button {
   white-space: pre;
 }
 
-.editor-line__content pre,
-.editor-line__content code,
+.editor-line__content,
 .editor-line__content span {
   font-family: 'Berkeley Mono', 'Cascadia Code', 'SFMono-Regular', Menlo, monospace !important;
   white-space: pre;
@@ -489,6 +506,55 @@ button {
 
 .editor-line--context .editor-line__content {
   color: #f8f8f2;
+}
+
+.editor-line__content .token.comment,
+.editor-line__content .token.prolog,
+.editor-line__content .token.doctype,
+.editor-line__content .token.cdata {
+  color: #928374;
+}
+
+.editor-line__content .token.punctuation {
+  color: #ebdbb2;
+}
+
+.editor-line__content .token.property,
+.editor-line__content .token.selector,
+.editor-line__content .token.attr-name,
+.editor-line__content .token.function {
+  color: #b8bb26;
+}
+
+.editor-line__content .token.tag,
+.editor-line__content .token.operator,
+.editor-line__content .token.keyword,
+.editor-line__content .token.entity {
+  color: #fb4934;
+}
+
+.editor-line__content .token.boolean,
+.editor-line__content .token.number,
+.editor-line__content .token.constant {
+  color: #d3869b;
+}
+
+.editor-line__content .token.symbol,
+.editor-line__content .token.builtin,
+.editor-line__content .token.atrule,
+.editor-line__content .token.url {
+  color: #83a598;
+}
+
+.editor-line__content .token.string,
+.editor-line__content .token.char,
+.editor-line__content .token.regex,
+.editor-line__content .token.attr-value {
+  color: #fabd2f;
+}
+
+.editor-line__content .token.important {
+  color: #fe8019;
 }
 
 .editor-line--added {
@@ -507,6 +573,19 @@ button {
 .editor-line--removed .editor-line__marker,
 .editor-line--removed .editor-line__content {
   color: #f92672;
+}
+
+@keyframes loading-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @media (max-width: 980px) {

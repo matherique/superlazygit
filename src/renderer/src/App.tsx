@@ -1,131 +1,18 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { gruvboxDark as fallbackSyntaxTheme } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import csharp from 'react-syntax-highlighter/dist/esm/languages/prism/csharp';
-import css from 'react-syntax-highlighter/dist/esm/languages/prism/css';
-import javascript from 'react-syntax-highlighter/dist/esm/languages/prism/javascript';
-import json from 'react-syntax-highlighter/dist/esm/languages/prism/json';
-import jsx from 'react-syntax-highlighter/dist/esm/languages/prism/jsx';
-import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup';
-import sql from 'react-syntax-highlighter/dist/esm/languages/prism/sql';
-import tsx from 'react-syntax-highlighter/dist/esm/languages/prism/tsx';
-import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript';
-import yaml from 'react-syntax-highlighter/dist/esm/languages/prism/yaml';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-markup';
+import 'prismjs/components/prism-css';
+import 'prismjs/components/prism-clike';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-jsx';
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-tsx';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-csharp';
+import 'prismjs/components/prism-sql';
+import 'prismjs/components/prism-yaml';
 
 import type { BranchInfo, CommitDiff, CommitInfo, DiffFile, DiffLine, RecentProject } from '../../shared/types';
-
-SyntaxHighlighter.registerLanguage('csharp', csharp);
-SyntaxHighlighter.registerLanguage('css', css);
-SyntaxHighlighter.registerLanguage('javascript', javascript);
-SyntaxHighlighter.registerLanguage('json', json);
-SyntaxHighlighter.registerLanguage('jsx', jsx);
-SyntaxHighlighter.registerLanguage('markup', markup);
-SyntaxHighlighter.registerLanguage('sql', sql);
-SyntaxHighlighter.registerLanguage('tsx', tsx);
-SyntaxHighlighter.registerLanguage('typescript', typescript);
-SyntaxHighlighter.registerLanguage('yaml', yaml);
-
-const monokaiSyntaxTheme = {
-  ...fallbackSyntaxTheme,
-  'pre[class*="language-"]': {
-    margin: 0,
-    background: 'transparent',
-    color: '#f8f8f2',
-    textShadow: 'none',
-    fontFamily: "'Berkeley Mono', 'Cascadia Code', 'SFMono-Regular', Menlo, monospace",
-    fontSize: '0.8rem',
-    lineHeight: 1.55,
-  },
-  'code[class*="language-"]': {
-    color: '#f8f8f2',
-    textShadow: 'none',
-    fontFamily: "'Berkeley Mono', 'Cascadia Code', 'SFMono-Regular', Menlo, monospace",
-  },
-  comment: {
-    color: '#75715e',
-  },
-  prolog: {
-    color: '#75715e',
-  },
-  doctype: {
-    color: '#75715e',
-  },
-  cdata: {
-    color: '#75715e',
-  },
-  punctuation: {
-    color: '#f8f8f2',
-  },
-  property: {
-    color: '#a6e22e',
-  },
-  tag: {
-    color: '#f92672',
-  },
-  boolean: {
-    color: '#ae81ff',
-  },
-  number: {
-    color: '#ae81ff',
-  },
-  constant: {
-    color: '#ae81ff',
-  },
-  symbol: {
-    color: '#66d9ef',
-  },
-  selector: {
-    color: '#a6e22e',
-  },
-  'attr-name': {
-    color: '#a6e22e',
-  },
-  string: {
-    color: '#e6db74',
-  },
-  char: {
-    color: '#e6db74',
-  },
-  builtin: {
-    color: '#66d9ef',
-  },
-  inserted: {
-    color: '#a6e22e',
-  },
-  deleted: {
-    color: '#f92672',
-  },
-  operator: {
-    color: '#f92672',
-  },
-  entity: {
-    color: '#f92672',
-  },
-  url: {
-    color: '#66d9ef',
-  },
-  atrule: {
-    color: '#66d9ef',
-  },
-  'attr-value': {
-    color: '#e6db74',
-  },
-  keyword: {
-    color: '#f92672',
-  },
-  function: {
-    color: '#a6e22e',
-  },
-  regex: {
-    color: '#e6db74',
-  },
-  important: {
-    color: '#fd971f',
-  },
-  variable: {
-    color: '#f8f8f2',
-  },
-};
 
 function formatCommitDate(date: string): string {
   try {
@@ -151,6 +38,24 @@ function getFolderName(repoPath: string) {
 
 function renderLineNumber(value?: number) {
   return value ?? '';
+}
+
+function LoadingIndicator({ label = 'carregando' }: { label?: string }) {
+  return (
+    <span className="loading-indicator" role="status">
+      <span className="loading-indicator__dot" aria-hidden="true" />
+      <span>{label}</span>
+    </span>
+  );
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 function getSyntaxLanguage(filePath: string): string | undefined {
@@ -190,6 +95,23 @@ function getSyntaxLanguage(filePath: string): string | undefined {
 
 function DiffEditorLine({ line, language }: { line: DiffLine; language?: string }) {
   const visibleLineNumber = line.newLineNumber ?? line.oldLineNumber;
+  const highlightedContent = useMemo(() => {
+    if (!line.content) {
+      return ' ';
+    }
+
+    if (!language) {
+      return escapeHtml(line.content);
+    }
+
+    const grammar = Prism.languages[language];
+
+    if (!grammar) {
+      return escapeHtml(line.content);
+    }
+
+    return Prism.highlight(line.content, grammar, language);
+  }, [language, line.content]);
 
   return (
     <div className={`editor-line editor-line--${line.kind}`}>
@@ -197,25 +119,10 @@ function DiffEditorLine({ line, language }: { line: DiffLine; language?: string 
       <span className="editor-line__marker" aria-hidden="true">
         {line.kind === 'added' ? '+' : line.kind === 'removed' ? '-' : ' '}
       </span>
-      <div className="editor-line__content">
-        <SyntaxHighlighter
-          language={language}
-          style={monokaiSyntaxTheme}
-          PreTag="div"
-          CodeTag="span"
-          customStyle={{
-            margin: 0,
-            padding: 0,
-            background: 'transparent',
-          }}
-          codeTagProps={{
-            className: 'editor-line__content-code',
-          }}
-          wrapLongLines={false}
-        >
-          {line.content || ' '}
-        </SyntaxHighlighter>
-      </div>
+      <div
+        className={`editor-line__content ${language ? `language-${language}` : ''}`}
+        dangerouslySetInnerHTML={{ __html: highlightedContent }}
+      />
     </div>
   );
 }
@@ -494,11 +401,16 @@ export function App() {
             <div className="stack-panel__header">
               <div>
                 <p className="panel__eyebrow">branches</p>
-                <h2>{loadingBranches ? 'carregando' : `${branches.length} local`}</h2>
+                <h2>{`${branches.length} local`}</h2>
               </div>
+              {loadingBranches ? <LoadingIndicator /> : null}
             </div>
             <div className="stack-panel__content">
-              {branches.length === 0 ? (
+              {loadingBranches && branches.length === 0 ? (
+                <p className="empty-state">
+                  <LoadingIndicator label="carregando branches" />
+                </p>
+              ) : branches.length === 0 ? (
                 <p className="empty-state">Abra um repositório pelo menu nativo do sistema para listar as branches locais.</p>
               ) : (
                 branches.map((branch) => (
@@ -524,10 +436,14 @@ export function App() {
                 <p className="panel__eyebrow">commits</p>
                 <h2>{selectedBranch || 'sem branch'}</h2>
               </div>
-              <span className="panel__meta">{loadingCommits ? 'syncing' : `${commits.length}`}</span>
+              {loadingCommits ? <LoadingIndicator label="syncing" /> : <span className="panel__meta">{`${commits.length}`}</span>}
             </div>
             <div className="stack-panel__content stack-panel__content--commits">
-              {commits.length === 0 ? (
+              {loadingCommits && commits.length === 0 ? (
+                <p className="empty-state">
+                  <LoadingIndicator label="carregando commits" />
+                </p>
+              ) : commits.length === 0 ? (
                 <p className="empty-state">Selecione uma branch para carregar os commits.</p>
               ) : (
                 commits.map((commit) => (
@@ -556,7 +472,9 @@ export function App() {
               <p className="panel__eyebrow">diff</p>
               <h2>{selectedCommitDetails?.message || 'Selecione um commit'}</h2>
             </div>
-            {selectedCommitDetails ? (
+            {loadingDiff ? (
+              <LoadingIndicator />
+            ) : selectedCommitDetails ? (
               <div className="diff-summary">
                 <span>{selectedCommitDetails.shortHash}</span>
                 <span>{selectedCommitDetails.author}</span>
@@ -565,7 +483,11 @@ export function App() {
             ) : null}
           </div>
           <div className="diff-panel__content">
-            {loadingDiff ? <p className="empty-state">Carregando alterações do commit...</p> : null}
+            {loadingDiff ? (
+              <p className="empty-state">
+                <LoadingIndicator label="carregando alterações do commit" />
+              </p>
+            ) : null}
             {!loadingDiff && selectedCommit && diff.files.length === 0 ? (
               <p className="empty-state">Esse commit não possui patch textual visível.</p>
             ) : null}

@@ -15,9 +15,9 @@
     "start": "electron dist-electron/main/main.js"
   },
   "dependencies": {
+    "prismjs": "^1.30.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-syntax-highlighter": "^15.6.1"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
