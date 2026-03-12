@@ -11,6 +11,8 @@
     "build": "npm run build:renderer && npm run build:main",
     "build:renderer": "vite build",
     "build:main": "tsc -p tsconfig.main.json",
+    "dist": "npm run build && electron-builder --mac dmg",
+    "dist:mac": "npm run build && electron-builder --mac dmg zip",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.main.json --noEmit",
     "start": "electron dist-electron/main/main.js"
   },
@@ -25,7 +27,32 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.0.0",
     "electron": "^37.0.0",
+    "electron-builder": "^24.13.3",
     "typescript": "^5.8.0",
     "vite": "^7.0.0"
+  },
+  "build": {
+    "appId": "com.superlazygit.app",
+    "productName": "Superlazygit",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json",
+      "icon.png"
+    ],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "icon.png"
+    },
+    "dmg": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    }
   }
 }
