@@ -52,6 +52,23 @@ export type RepositorySelection =
       error: string;
     };
 
+export interface PullRequestInfo {
+  number: number;
+  title: string;
+  state: string;
+  author: string;
+  branch: string;
+  baseBranch: string;
+  createdAt: string;
+  updatedAt: string;
+  additions: number;
+  deletions: number;
+  isDraft: boolean;
+  labels: string[];
+  reviewDecision: string;
+  url: string;
+}
+
 export interface GitViewerApi {
   onRepositorySelected: (listener: (selection: RepositorySelection) => void) => () => void;
   getRecentProjects: () => Promise<RecentProject[]>;
@@ -59,4 +76,6 @@ export interface GitViewerApi {
   getBranches: (repoPath: string) => Promise<BranchInfo[]>;
   getCommits: (repoPath: string, branchName: string) => Promise<CommitInfo[]>;
   getCommitDiff: (repoPath: string, commitHash: string) => Promise<CommitDiff>;
+  getPullRequests: (repoPath: string) => Promise<PullRequestInfo[]>;
+  getPullRequestDiff: (repoPath: string, prNumber: number) => Promise<CommitDiff>;
 }

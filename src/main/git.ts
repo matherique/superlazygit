@@ -214,7 +214,7 @@ function parseHunks(lines: string[]): DiffHunk[] {
   return hunks;
 }
 
-function parsePatchSection(section: string): DiffFile {
+export function parsePatchSection(section: string): DiffFile {
   const lines = section.split('\n');
   const pathInfo = deriveDiffPath(lines);
   const hunks = parseHunks(lines);

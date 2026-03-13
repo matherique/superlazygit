@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 
 import { ensureRepository, getBranches, getCommitDiff, getCommits } from './git';
+import { getPullRequestDiff, getPullRequests } from './github';
 import { getRecentProjects, removeRecentProject, saveRecentProject } from './recent-projects';
 import type { RepositorySelection } from '../shared/types';
 import type { MenuItemConstructorOptions } from 'electron';
@@ -184,6 +185,14 @@ ipcMain.handle('git:getCommits', async (_event, repoPath: string, branchName: st
 
 ipcMain.handle('git:getCommitDiff', async (_event, repoPath: string, commitHash: string) => {
   return getCommitDiff(repoPath, commitHash);
+});
+
+ipcMain.handle('github:getPullRequests', async (_event, repoPath: string) => {
+  return getPullRequests(repoPath);
+});
+
+ipcMain.handle('github:getPullRequestDiff', async (_event, repoPath: string, prNumber: number) => {
+  return getPullRequestDiff(repoPath, prNumber);
 });
 
 app.whenReady().then(async () => {

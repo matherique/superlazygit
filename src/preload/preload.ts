@@ -19,6 +19,8 @@ const api: GitViewerApi = {
   getBranches: (repoPath) => ipcRenderer.invoke('git:getBranches', repoPath),
   getCommits: (repoPath, branchName) => ipcRenderer.invoke('git:getCommits', repoPath, branchName),
   getCommitDiff: (repoPath, commitHash) => ipcRenderer.invoke('git:getCommitDiff', repoPath, commitHash),
+  getPullRequests: (repoPath) => ipcRenderer.invoke('github:getPullRequests', repoPath),
+  getPullRequestDiff: (repoPath, prNumber) => ipcRenderer.invoke('github:getPullRequestDiff', repoPath, prNumber),
 };
 
 contextBridge.exposeInMainWorld('gitViewer', api);
