@@ -1,5 +1,7 @@
 # Superlazygit
 
+> ⚠️ Este app foi feito no vibecoding para uso pessoal
+
 App desktop em Electron para abrir um repositório Git local, listar branches, navegar pelos commits e visualizar o patch de cada commit com adições e remoções destacadas.
 
 ## Rodando
