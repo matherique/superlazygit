@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="icon.png" alt="Superlazygit" width="128" />
+</p>
+
 # Superlazygit
 
 > ⚠️ Este app foi feito no vibecoding para uso pessoal
