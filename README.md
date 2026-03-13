@@ -34,7 +34,15 @@ Arquivos gerados:
 - `release/*.dmg`
 - `release/*.zip`
 
-Observacao: para distribuicao final no macOS, o ideal e adicionar assinatura e notarizacao Apple depois. Sem isso, outro Mac ainda pode abrir o app, mas pode exigir confirmacao manual do sistema.
+### "Superlazygit" is damaged and can't be opened
+
+Como o app não possui assinatura Apple, o macOS bloqueia a execução. Para resolver, rode no terminal:
+
+```bash
+xattr -cr /Applications/Superlazygit.app
+```
+
+Se instalou em outro local, ajuste o caminho. Depois disso o app abre normalmente.
 
 ## Fluxo
 
